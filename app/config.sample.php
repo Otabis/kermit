@@ -14,6 +14,9 @@ return [
         'pass'    => 'HIER-PASSWORT',
         'charset' => 'utf8mb4',
     ],
+    // Nur für die einmalige Einrichtung (setup.php). Danach leeren.
+    'setup_token' => '',
+
     'app' => [
         'timezone'      => 'Europe/Zurich',
         'session_name'  => 'KERMITSESS',
