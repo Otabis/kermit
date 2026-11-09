@@ -13,7 +13,7 @@ $konto = ($_GET['zeitkonto'] ?? 'standard') === 'pikett' ? 'pikett' : 'standard'
 
 $st = db()->prepare(
     "SELECT e.id, e.beginn, e.ende, e.km, e.verkehrsmittel, e.quelle, e.notiz,
-            e.kunde_id, k.name AS kunde, e.projekt_id, p.name AS projekt,
+            e.kunde_id, CONCAT_WS(' · ', k.kundennr, k.name) AS kunde, e.projekt_id, p.name AS projekt,
             e.leistungsart_id, l.name AS leistung, l.typ
        FROM eintraege e
        JOIN leistungsarten l ON l.id = e.leistungsart_id

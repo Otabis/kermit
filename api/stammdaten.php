@@ -5,7 +5,7 @@ require __DIR__ . '/../app/bootstrap.php';
 methode('GET');
 login_pflicht();
 
-$kunden = db()->query('SELECT id, name FROM kunden WHERE aktiv = 1 ORDER BY name')->fetchAll();
+$kunden = db()->query('SELECT id, name, kundennr FROM kunden WHERE aktiv = 1 ORDER BY name')->fetchAll();
 $projekte = db()->query('SELECT id, kunde_id, name FROM projekte WHERE aktiv = 1 ORDER BY name')->fetchAll();
 $leistungen = db()->query('SELECT id, name, typ FROM leistungsarten WHERE aktiv = 1 ORDER BY sortierung, name')->fetchAll();
 

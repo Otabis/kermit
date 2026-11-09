@@ -158,7 +158,7 @@
     function fillKunden() {
       const sk = $('kunde');
       sk.innerHTML = '';
-      STAMM.kunden.forEach(k => sk.add(new Option(k.name, k.id)));
+      STAMM.kunden.forEach(k => sk.add(new Option((k.kundennr ? k.kundennr + ' · ' : '') + k.name, k.id)));
       fillProjekte();
       const sl = $('leistung');
       sl.innerHTML = '';
