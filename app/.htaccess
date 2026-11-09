@@ -1,0 +1,2 @@
+# Dieser Ordner darf nie direkt aus dem Web erreichbar sein
+Require all denied

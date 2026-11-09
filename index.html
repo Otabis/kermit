@@ -30,6 +30,7 @@
         <label>Passwort
           <input type="password" name="password" required autocomplete="current-password">
         </label>
+        <p class="k-login-err k-hidden" id="loginErr" role="alert"></p>
         <button class="k-btn" type="submit">Anmelden &amp; Tag starten</button>
       </form>
 
@@ -38,19 +39,43 @@
   </main>
 
   <script>
-    // GERÜST: Noch keine echte Anmeldung. Später durch Server-Login (z. B. PHP-Session / Microsoft 365 SSO) ersetzen.
     const startBtn = document.getElementById('startBtn');
     const form = document.getElementById('loginForm');
+    const err = document.getElementById('loginErr');
+
+    // Bereits angemeldet? Dann führt START direkt zur Zeiterfassung.
+    let angemeldet = false;
+    fetch('api/me.php', { credentials: 'same-origin' })
+      .then(r => { angemeldet = r.ok; })
+      .catch(() => {});
 
     startBtn.addEventListener('click', () => {
+      if (angemeldet) { location.href = 'zeiterfassung.html?start=1'; return; }
       startBtn.classList.add('k-hidden');
       form.classList.remove('k-hidden');
       document.getElementById('email').focus();
     });
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      window.location.href = 'zeiterfassung.html?start=1';
+      err.classList.add('k-hidden');
+      const btn = form.querySelector('button[type=submit]');
+      btn.disabled = true;
+      try {
+        const res = await fetch('api/login.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ email: form.email.value, passwort: form.password.value })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.fehler || 'Anmeldung fehlgeschlagen');
+        location.href = 'zeiterfassung.html?start=1';
+      } catch (ex) {
+        err.textContent = ex.message;
+        err.classList.remove('k-hidden');
+        btn.disabled = false;
+      }
     });
   </script>
 </body>
