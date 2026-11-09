@@ -37,7 +37,7 @@ foreach ($rows as &$r) {
         $laufend = $r;
         continue;
     }
-    if ($r['typ'] !== 'pause') { $arbeit += $r['minuten']; }
+    if (!in_array($r['typ'], ['pause', 'abwesenheit'], true)) { $arbeit += $r['minuten']; }
     if ($r['typ'] === 'telefon') { $tel += $r['minuten']; }
     $km += $r['km'];
 }
