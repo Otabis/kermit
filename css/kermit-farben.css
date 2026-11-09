@@ -1,0 +1,102 @@
+/* ==========================================================
+   KERMIT – Farbdefinition
+   Otabis GmbH · Stand 09.11.2026
+   ========================================================== */
+
+:root {
+  /* Blau – Hauptfarben */
+  --k-tiefblau:   #1F3A5F;  /* Kopfzeile, Navigation, Text */
+  --k-mittelblau: #2F6FB2;  /* Primary Buttons, Links */
+  --k-hellblau:   #E8F0F8;  /* Flächen, Karten, Hintergrund */
+
+  /* Grün – Akzent für Hover und Status */
+  --k-gruen:      #2E8B57;  /* Hover auf hellem Grund, Status "freigegeben" */
+  --k-gruen-hell: #6CC28A;  /* Hover auf Tiefblau (Kopfzeile, Menü) */
+
+  /* Neutrale Töne */
+  --k-weiss:      #FFFFFF;
+  --k-text:       var(--k-tiefblau);
+  --k-rahmen:     #C9D6E6;
+
+  /* Semantische Zuordnung */
+  --k-bg:           var(--k-hellblau);
+  --k-surface:      var(--k-weiss);
+  --k-primary:      var(--k-mittelblau);
+  --k-primary-text: var(--k-weiss);
+  --k-link:         var(--k-mittelblau);
+  --k-hover:        var(--k-gruen);
+  --k-hover-dunkel: var(--k-gruen-hell);
+  --k-ok:           var(--k-gruen);
+
+  --k-hover-linie:  2px;
+}
+
+/* ---------- Grundlage ---------- */
+body {
+  background: var(--k-bg);
+  color: var(--k-text);
+}
+
+/* ---------- Links ---------- */
+a {
+  color: var(--k-link);
+  text-decoration: none;
+  border-bottom: var(--k-hover-linie) solid transparent;
+  transition: border-color .15s ease;
+}
+a:hover,
+a:focus-visible {
+  border-bottom-color: var(--k-hover);
+}
+
+/* ---------- Buttons ---------- */
+.k-btn {
+  background: var(--k-primary);
+  color: var(--k-primary-text);
+  border: var(--k-hover-linie) solid var(--k-primary);
+  border-radius: 6px;
+  padding: .55em 1.1em;
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.k-btn:hover,
+.k-btn:focus-visible {
+  border-color: var(--k-hover);
+  box-shadow: 0 0 0 var(--k-hover-linie) var(--k-hover);
+  outline: none;
+}
+
+/* ---------- Kopfzeile / Menü auf Tiefblau ---------- */
+.k-header {
+  background: var(--k-tiefblau);
+  color: var(--k-weiss);
+}
+.k-header a {
+  color: var(--k-weiss);
+}
+.k-header a:hover,
+.k-header a:focus-visible {
+  color: var(--k-hover-dunkel);
+  border-bottom-color: var(--k-hover-dunkel);
+}
+
+/* ---------- Karten ---------- */
+.k-card {
+  background: var(--k-surface);
+  border: 1px solid var(--k-rahmen);
+  border-radius: 8px;
+  transition: border-color .15s ease;
+}
+.k-card:hover {
+  border-color: var(--k-hover);
+}
+
+/* ---------- Status ---------- */
+/* Grün nie allein: immer mit Icon oder Text kombinieren */
+.k-status-ok {
+  color: var(--k-ok);
+  font-weight: 600;
+}
+.k-status-ok::before {
+  content: "✓ ";
+}

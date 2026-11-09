@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KERMIT – Zeiterfassung</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/kermit-farben.css">
+  <link rel="stylesheet" href="css/kermit-app.css">
+</head>
+<body>
+  <header class="k-header">
+    <div class="k-logo">KERMI<span>T</span></div>
+    <nav>
+      <a href="zeiterfassung.html">Heute</a>
+      <a href="#">Woche</a>
+      <a href="#">Rapporte</a>
+      <a href="#">Spesen</a>
+      <a href="#">Kunden &amp; Projekte</a>
+    </nav>
+    <span class="k-user">Matteo B. · <a href="index.html">Abmelden</a></span>
+  </header>
+
+  <main class="k-main">
+    <!-- Tagesleiste -->
+    <section class="k-daybar">
+      <button class="k-btn-ghost" id="prevDay" aria-label="Vorheriger Tag">‹</button>
+      <h1 id="dayTitle">Heute</h1>
+      <button class="k-btn-ghost" id="nextDay" aria-label="Nächster Tag">›</button>
+      <span class="k-spacer"></span>
+      <label class="k-sub">Zeit-Person
+        <select id="zeitPerson" class="k-btn-ghost">
+          <option>Matteo – alle Kunden</option>
+          <option>Matteo – Pikett</option>
+        </select>
+      </label>
+    </section>
+
+    <!-- Timer / laufende Erfassung -->
+    <section class="k-card">
+      <h2>Erfassung</h2>
+      <div class="k-timer">
+        <div class="k-timer-fields k-form">
+          <label>Kunde
+            <select id="kunde"></select>
+          </label>
+          <label>Projekt
+            <select id="projekt"></select>
+          </label>
+          <label>Leistung
+            <select id="leistung"></select>
+          </label>
+          <label style="grid-column: 1 / -1">Notiz
+            <input id="notiz" type="text" placeholder="z. B. Drucker eingerichtet, Outlook-Profil neu">
+          </label>
+        </div>
+        <div class="k-timer-right">
+          <div class="k-clock" id="clock">00:00:00</div>
+          <button class="k-runbtn" id="runBtn" type="button">START</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kennzahlen -->
+    <section class="k-stats" aria-label="Tagesübersicht">
+      <div class="k-stat"><div class="v" id="sZeit">0:00</div><div class="l">Arbeitszeit</div></div>
+      <div class="k-stat"><div class="v" id="sKm">0 km</div><div class="l">Fahrten</div></div>
+      <div class="k-stat"><div class="v" id="sTel">0:00</div><div class="l">Telefonate</div></div>
+      <div class="k-stat"><div class="v" id="sSpesen">CHF 0.00</div><div class="l">Spesen</div></div>
+    </section>
+
+    <!-- Einträge des Tages -->
+    <section class="k-card">
+      <h2>Einträge</h2>
+      <table class="k-table">
+        <thead>
+          <tr>
+            <th>Zeit</th><th>Kunde / Projekt</th><th>Leistung</th><th>Quelle</th><th class="k-num">Dauer</th><th class="k-num">km</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </section>
+
+    <!-- Tagesfreigabe -->
+    <section class="k-card k-approve">
+      <span id="approveState" class="k-sub">Tag noch nicht freigegeben</span>
+      <button class="k-btn-ghost" type="button">Eintrag hinzufügen</button>
+      <button class="k-btn" id="approveBtn" type="button">Tag freigeben</button>
+    </section>
+  </main>
+
+  <script>
+    // ===========================================================
+    // GERÜST mit Beispieldaten. Später ersetzen durch:
+    //  - Kunden/Projekte/Leistungsarten aus Comatic
+    //  - Fahrten aus der Handy-App (Hintergrund-Tracking)
+    //  - Telefonate aus iPhone-Export bzw. 3CX
+    // ===========================================================
+    const DATA = {
+      kunden: {
+        'Businesspoint': ['Support 2026', 'M365 Umstellung'],
+        'Kunde B AG':    ['Netzwerk', 'Pikett'],
+        'Kunde C GmbH':  ['Wartungsvertrag']
+      },
+      leistungen: ['Support vor Ort', 'Fernwartung (AnyDesk)', 'Telefonsupport', 'Anfahrt', 'Rückfahrt', 'Projektarbeit']
+    };
+
+    const entries = [
+      { von:'07:45', bis:'08:20', kunde:'Businesspoint', projekt:'Support 2026', leistung:'Anfahrt',        quelle:'fahrt', km:18 },
+      { von:'08:20', bis:'11:30', kunde:'Businesspoint', projekt:'Support 2026', leistung:'Support vor Ort', quelle:'auto',  km:0, notiz:'Drucker, Outlook-Profile' },
+      { von:'10:05', bis:'10:17', kunde:'Kunde C GmbH',  projekt:'Wartungsvertrag', leistung:'Telefonsupport', quelle:'tel', km:0, notiz:'Verrechnet: 15 Min.' },
+      { von:'11:30', bis:'12:00', kunde:'Businesspoint', projekt:'Support 2026', leistung:'Rückfahrt',      quelle:'fahrt', km:18 },
+      { von:'12:00', bis:'12:45', kunde:'—',             projekt:'',            leistung:'Mittagspause',   quelle:'auto',  km:0, pause:true }
+    ];
+    const spesen = 6.50;
+
+    const QUELLE = { auto:'automatisch', fahrt:'Fahrt (GPS)', tel:'Telefon', manuell:'manuell' };
+
+    // ---------- Auswahlfelder ----------
+    const selKunde = document.getElementById('kunde');
+    const selProjekt = document.getElementById('projekt');
+    const selLeistung = document.getElementById('leistung');
+    Object.keys(DATA.kunden).forEach(k => selKunde.add(new Option(k, k)));
+    DATA.leistungen.forEach(l => selLeistung.add(new Option(l, l)));
+    function fillProjekte() {
+      selProjekt.innerHTML = '';
+      DATA.kunden[selKunde.value].forEach(p => selProjekt.add(new Option(p, p)));
+    }
+    selKunde.addEventListener('change', fillProjekte);
+    fillProjekte();
+
+    // ---------- Hilfsfunktionen ----------
+    const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+    const fmt = m => Math.floor(m/60) + ':' + String(m%60).padStart(2,'0');
+    const now = () => new Date().toTimeString().slice(0,5);
+
+    // ---------- Tabelle & Kennzahlen ----------
+    function render() {
+      const tb = document.getElementById('rows');
+      tb.innerHTML = '';
+      let arbeit = 0, km = 0, tel = 0;
+      entries.forEach(e => {
+        const d = toMin(e.bis) - toMin(e.von);
+        if (!e.pause) arbeit += d;
+        if (e.quelle === 'tel') tel += d;
+        km += e.km || 0;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="k-zeit">${e.von}–${e.bis}</td>
+          <td>${e.kunde}${e.projekt ? `<div class="k-sub">${e.projekt}</div>` : ''}</td>
+          <td>${e.leistung}${e.notiz ? `<div class="k-sub">${e.notiz}</div>` : ''}</td>
+          <td><span class="k-tag ${e.quelle}">${QUELLE[e.quelle]}</span></td>
+          <td class="k-num">${fmt(d)}</td>
+          <td class="k-num">${e.km || ''}</td>`;
+        tb.appendChild(tr);
+      });
+      document.getElementById('sZeit').textContent = fmt(arbeit);
+      document.getElementById('sKm').textContent = km + ' km';
+      document.getElementById('sTel').textContent = fmt(tel);
+      document.getElementById('sSpesen').textContent = 'CHF ' + spesen.toFixed(2);
+    }
+
+    // ---------- Datum ----------
+    let tag = new Date();
+    function renderDay() {
+      document.getElementById('dayTitle').textContent =
+        tag.toLocaleDateString('de-CH', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    }
+    document.getElementById('prevDay').onclick = () => { tag.setDate(tag.getDate()-1); renderDay(); };
+    document.getElementById('nextDay').onclick = () => { tag.setDate(tag.getDate()+1); renderDay(); };
+
+    // ---------- Timer ----------
+    const runBtn = document.getElementById('runBtn');
+    const clock = document.getElementById('clock');
+    let start = null, timerId = null, startZeit = null;
+
+    function tick() {
+      const s = Math.floor((Date.now() - start) / 1000);
+      clock.textContent = [Math.floor(s/3600), Math.floor(s/60)%60, s%60].map(n => String(n).padStart(2,'0')).join(':');
+    }
+    function startTimer() {
+      start = Date.now(); startZeit = now();
+      timerId = setInterval(tick, 1000); tick();
+      runBtn.textContent = 'STOPP'; runBtn.classList.add('is-running');
+    }
+    function stopTimer() {
+      clearInterval(timerId);
+      entries.push({
+        von: startZeit, bis: now(),
+        kunde: selKunde.value, projekt: selProjekt.value, leistung: selLeistung.value,
+        quelle: 'manuell', km: 0, notiz: document.getElementById('notiz').value
+      });
+      document.getElementById('notiz').value = '';
+      clock.textContent = '00:00:00';
+      runBtn.textContent = 'START'; runBtn.classList.remove('is-running');
+      start = null; render();
+    }
+    runBtn.addEventListener('click', () => start ? stopTimer() : startTimer());
+
+    // ---------- Tagesfreigabe ----------
+    document.getElementById('approveBtn').addEventListener('click', () => {
+      const s = document.getElementById('approveState');
+      s.textContent = 'Tag freigegeben – bereit für Export';
+      s.className = 'k-status-ok';
+    });
+
+    renderDay(); render();
+    if (new URLSearchParams(location.search).get('start') === '1') startTimer();
+  </script>
+</body>
+</html>

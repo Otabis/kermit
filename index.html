@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KERMIT – Anmelden</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/kermit-farben.css">
+  <link rel="stylesheet" href="css/kermit-app.css">
+</head>
+<body>
+  <main class="k-start">
+    <div class="k-start-box">
+      <h1 class="k-start-logo">KERMIT</h1>
+      <p class="k-start-claim">
+        <b>K</b>unden · <b>E</b>insätze · <b>R</b>apporte · <b>M</b>obil · <b>I</b>ntelligent · <b>T</b>racken
+      </p>
+
+      <!-- Schritt 1: markanter Start-Button -->
+      <button class="k-bigstart" id="startBtn" type="button" aria-controls="loginForm">
+        <span>START<small>Tag beginnen</small></span>
+      </button>
+
+      <!-- Schritt 2: Login (erscheint nach Klick auf Start) -->
+      <form class="k-login k-hidden" id="loginForm" autocomplete="on">
+        <label>E-Mail
+          <input type="email" name="email" id="email" required autocomplete="username" placeholder="name@otabis.ch">
+        </label>
+        <label>Passwort
+          <input type="password" name="password" required autocomplete="current-password">
+        </label>
+        <button class="k-btn" type="submit">Anmelden &amp; Tag starten</button>
+      </form>
+
+      <p class="k-login-foot">Otabis GmbH · Baar · Daten gehostet in der Schweiz</p>
+    </div>
+  </main>
+
+  <script>
+    // GERÜST: Noch keine echte Anmeldung. Später durch Server-Login (z. B. PHP-Session / Microsoft 365 SSO) ersetzen.
+    const startBtn = document.getElementById('startBtn');
+    const form = document.getElementById('loginForm');
+
+    startBtn.addEventListener('click', () => {
+      startBtn.classList.add('k-hidden');
+      form.classList.remove('k-hidden');
+      document.getElementById('email').focus();
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      window.location.href = 'zeiterfassung.html?start=1';
+    });
+  </script>
+</body>
+</html>
