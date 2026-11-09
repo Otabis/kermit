@@ -1,0 +1,87 @@
+/* KERMIT – Seite Kunden & Projekte */
+
+.k-header nav a[aria-current="page"] { border-bottom-color: var(--k-gruen-hell); }
+
+/* Tabs */
+.k-tabs { display: inline-flex; background: var(--k-weiss); border: 1px solid var(--k-rahmen); border-radius: 8px; padding: 3px; }
+.k-tab { background: none; border: 0; padding: 7px 14px; border-radius: 6px; cursor: pointer; color: var(--k-tiefblau); }
+.k-tab:hover { color: var(--k-gruen); }
+.k-tab.is-active { background: var(--k-tiefblau); color: var(--k-weiss); }
+
+/* Werkzeugleiste */
+.k-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.k-search { flex: 1 1 280px; max-width: 460px; padding: 10px 12px; border: 1px solid var(--k-rahmen); border-radius: 6px; background: var(--k-weiss); color: var(--k-tiefblau); }
+.k-search:focus { outline: 2px solid var(--k-gruen); outline-offset: 0; }
+.k-check { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+.k-spacer { flex: 1; }
+
+/* Kundenliste */
+.k-list { display: grid; gap: 8px; }
+.k-kunde { background: var(--k-weiss); border: 1px solid var(--k-rahmen); border-radius: 8px; transition: border-color .15s ease; }
+.k-kunde:hover { border-color: var(--k-gruen); }
+.k-kunde.is-inaktiv { opacity: .65; }
+.k-kunde-kopf {
+  width: 100%; display: grid; grid-template-columns: 110px minmax(0, 1fr) 200px 90px 20px; gap: 12px; align-items: center;
+  background: none; border: 0; padding: 12px 16px; text-align: left; cursor: pointer; color: var(--k-tiefblau);
+}
+.k-nr { font-weight: 700; font-variant-numeric: tabular-nums; }
+.k-kname { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-ort, .k-anz { font-size: 14px; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.k-anz { text-align: right; }
+.k-chev { transition: transform .15s ease; font-size: 20px; line-height: 1; opacity: .6; }
+.k-kunde.is-open .k-chev { transform: rotate(90deg); }
+.k-kunde-body { display: none; padding: 0 16px 14px; border-top: 1px solid var(--k-rahmen); }
+.k-kunde.is-open .k-kunde-body { display: block; }
+.k-kunde-aktionen { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 0; }
+
+.k-projekte { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.k-projekte li {
+  display: grid; grid-template-columns: minmax(0, 1fr) 130px 220px 44px 80px; gap: 12px; align-items: center;
+  padding: 8px 10px; border-radius: 6px; background: var(--k-hellblau);
+}
+.k-projekte li.is-inaktiv .k-pname { text-decoration: line-through; opacity: .6; }
+.k-pname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-leer { padding: 8px 0; margin: 0; }
+
+/* Schalter */
+.k-switch { position: relative; width: 38px; height: 22px; display: inline-block; cursor: pointer; }
+.k-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.k-switch span { position: absolute; inset: 0; background: #C3CCD8; border-radius: 999px; transition: background .15s ease; pointer-events: none; }
+.k-switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s ease; }
+.k-switch input:checked + span { background: var(--k-gruen); }
+.k-switch input:checked + span::after { transform: translateX(16px); }
+.k-switch input:focus-visible + span { outline: 2px solid var(--k-mittelblau); outline-offset: 2px; }
+
+.k-link { background: none; border: 0; padding: 0; color: var(--k-mittelblau); cursor: pointer; text-decoration: underline; font-size: 14px; }
+.k-link:hover { color: var(--k-gruen); }
+.k-danger { color: #B42318; border-color: #F0C4C4; }
+.k-danger:hover { border-color: #B42318; }
+.k-chip { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #E3F1E8; color: var(--k-gruen); margin: 1px 0; white-space: nowrap; }
+
+/* Zeitarten-Tabelle */
+.k-table-wrap { padding: 8px 16px; overflow-x: auto; }
+.k-ztable tr.is-inaktiv td { opacity: .55; }
+
+/* Dialoge */
+.k-dialog-wide { width: min(560px, calc(100vw - 32px)); }
+.k-span2 { grid-column: 1 / -1; }
+.k-dialog .k-check { font-size: 14px; }
+.k-dialog-grid input:not([type=checkbox]) { padding: 9px 10px; border: 1px solid var(--k-rahmen); border-radius: 6px; width: 100%; }
+.k-picklist { max-height: 300px; overflow-y: auto; border: 1px solid var(--k-rahmen); border-radius: 6px; padding: 6px 10px; margin-top: 8px; display: grid; gap: 4px; }
+
+/* Nur-Lesen für Mitarbeitende */
+.k-readonly .k-admin { display: none !important; }
+
+@media (max-width: 760px) {
+  .k-kunde-kopf { grid-template-columns: 80px minmax(0, 1fr) 20px; }
+  .k-ort, .k-anz { display: none; }
+  .k-projekte li { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .k-projekte li .k-sub { grid-column: 1 / 2; }
+  .k-tabs { width: 100%; }
+  .k-tab { flex: 1; }
+}
+
+/* Checkboxen in Formularen nicht strecken */
+.k-form input[type=checkbox] { width: auto; flex: 0 0 auto; margin: 0; }
+.k-dialog-grid label.k-check, .k-picklist label.k-check { display: flex; align-items: center; gap: 8px; }
+.k-picklist label.k-check { justify-content: flex-start; padding: 3px 0; }

@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KERMIT – Kunden &amp; Projekte</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/kermit-farben.css">
+  <link rel="stylesheet" href="css/kermit-app.css">
+  <link rel="stylesheet" href="css/kermit-kunden.css">
+</head>
+<body>
+  <header class="k-header">
+    <div class="k-logo">KERMI<span>T</span></div>
+    <nav>
+      <a href="zeiterfassung.html">Heute</a>
+      <a href="#">Woche</a>
+      <a href="#">Rapporte</a>
+      <a href="#">Spesen</a>
+      <a href="kunden.html" aria-current="page">Kunden &amp; Projekte</a>
+    </nav>
+    <span class="k-user"><span id="userName">…</span> · <a href="#" id="logout">Abmelden</a></span>
+  </header>
+
+  <main class="k-main">
+    <div class="k-msg k-hidden" id="msg" role="alert"></div>
+
+    <section class="k-daybar">
+      <h1>Kunden &amp; Projekte</h1>
+      <span class="k-spacer"></span>
+      <div class="k-tabs" role="tablist">
+        <button type="button" role="tab" class="k-tab is-active" data-tab="kunden" aria-selected="true">Kunden &amp; Aufträge</button>
+        <button type="button" role="tab" class="k-tab" data-tab="zeitarten" aria-selected="false">Zeitarten</button>
+      </div>
+    </section>
+
+    <!-- ================= Kunden & Aufträge ================= -->
+    <section id="tab-kunden">
+      <div class="k-toolbar">
+        <input type="search" id="suche" class="k-search" placeholder="Suchen: Nummer, Name, Ort, Auftrag …" autocomplete="off">
+        <label class="k-check"><input type="checkbox" id="zeigeInaktive"> ausgeblendete zeigen</label>
+        <span class="k-spacer"></span>
+        <span class="k-sub" id="zaehler"></span>
+        <button type="button" class="k-btn k-admin" id="neuKunde">+ Kunde</button>
+      </div>
+      <div id="kundenListe" class="k-list"></div>
+    </section>
+
+    <!-- ================= Zeitarten ================= -->
+    <section id="tab-zeitarten" class="k-hidden">
+      <div class="k-toolbar">
+        <input type="search" id="sucheZ" class="k-search" placeholder="Zeitart suchen …" autocomplete="off">
+        <span class="k-spacer"></span>
+        <span class="k-sub">Ohne Kundenzuordnung gilt eine Zeitart für alle Kunden.</span>
+      </div>
+      <div class="k-card k-table-wrap">
+        <table class="k-table k-ztable">
+          <thead>
+            <tr><th>Zeitart</th><th>Typ</th><th class="k-num">Preis/Std.</th><th>Verrechenbar</th><th>Nur für Kunden</th><th>Aktiv</th><th></th></tr>
+          </thead>
+          <tbody id="zeitartenListe"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Dialog Kunde -->
+  <dialog class="k-dialog" id="dlgKunde">
+    <form id="frmKunde" class="k-form">
+      <h2 id="dlgKundeTitel">Kunde</h2>
+      <div class="k-dialog-grid">
+        <label class="k-span2">Name <input id="kName" required maxlength="160"></label>
+        <label>Kundennummer <input id="kNr" maxlength="20" placeholder="z. B. HON-39"></label>
+        <label>Comatic Adress_ID <input id="kComatic" maxlength="40" inputmode="numeric"></label>
+        <label class="k-span2">PLZ Ort <input id="kAdresse" maxlength="255"></label>
+        <label class="k-check k-span2"><input type="checkbox" id="kAktiv" checked> aktiv (in der Erfassung wählbar)</label>
+      </div>
+      <div class="k-approve">
+        <button type="button" class="k-btn-ghost k-danger" id="kLoeschen">Löschen</button>
+        <span class="k-spacer"></span>
+        <button type="button" class="k-btn-ghost" data-close>Abbrechen</button>
+        <button type="submit" class="k-btn">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Dialog Auftrag -->
+  <dialog class="k-dialog" id="dlgProjekt">
+    <form id="frmProjekt" class="k-form">
+      <h2 id="dlgProjektTitel">Auftrag</h2>
+      <p class="k-sub" id="pKundeName"></p>
+      <div class="k-dialog-grid">
+        <label class="k-span2">Bezeichnung <input id="pName" required maxlength="160"></label>
+        <label>Comatic Auftrags-Nr. <input id="pComatic" maxlength="40"></label>
+        <label class="k-check"><input type="checkbox" id="pAktiv" checked> aktiv</label>
+      </div>
+      <p class="k-sub" id="pInfo"></p>
+      <div class="k-approve">
+        <button type="button" class="k-btn-ghost k-danger" id="pLoeschen">Löschen</button>
+        <span class="k-spacer"></span>
+        <button type="button" class="k-btn-ghost" data-close>Abbrechen</button>
+        <button type="submit" class="k-btn">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Dialog Zeitart -> Kunden -->
+  <dialog class="k-dialog k-dialog-wide" id="dlgZeitart">
+    <form id="frmZeitart" class="k-form">
+      <h2 id="zTitel">Zeitart</h2>
+      <div class="k-dialog-grid">
+        <label class="k-check"><input type="checkbox" id="zAktiv"> aktiv</label>
+        <label class="k-check"><input type="checkbox" id="zVerr"> verrechenbar</label>
+      </div>
+      <p class="k-sub">Nur für diese Kunden anzeigen (keine Auswahl = alle Kunden):</p>
+      <input type="search" id="zKundeSuche" class="k-search" placeholder="Kunde suchen …">
+      <div id="zKunden" class="k-picklist"></div>
+      <div class="k-approve">
+        <span class="k-sub" id="zAnzahl"></span>
+        <span class="k-spacer"></span>
+        <button type="button" class="k-btn-ghost" data-close>Abbrechen</button>
+        <button type="submit" class="k-btn">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    // ===========================================================
+    // KERMIT – Kunden & Projekte (spricht mit api/kunden.php)
+    // ===========================================================
+    let CSRF = '';
+    let D = { kunden: [], zeitarten: [], darf_bearbeiten: false };
+    const offen = new Set();      // aufgeklappte Kunden
+
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const norm = s => String(s ?? '').toLowerCase();
+    const datum = s => s ? new Date(s.replace(' ', 'T')).toLocaleDateString('de-CH') : '';
+    const TYP = { arbeit:'Arbeit', fahrt:'Fahrt', telefon:'Telefon', pause:'Pause', abwesenheit:'Abwesenheit' };
+
+    async function api(pfad, opt = {}) {
+      const res = await fetch('api/' + pfad, {
+        method: opt.method || 'GET',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+        body: opt.body ? JSON.stringify(opt.body) : undefined,
+        credentials: 'same-origin'
+      });
+      let data = {};
+      try { data = await res.json(); } catch (e) { /* leer */ }
+      if (res.status === 401) { location.href = 'index.html'; throw new Error('Nicht angemeldet'); }
+      if (!res.ok || data.ok === false) throw new Error(data.fehler || 'Fehler ' + res.status);
+      return data;
+    }
+    function meldung(text, ok = false) {
+      const m = $('msg');
+      m.textContent = text;
+      m.className = 'k-msg' + (ok ? ' ok' : '');
+      clearTimeout(meldung.t);
+      meldung.t = setTimeout(() => m.classList.add('k-hidden'), 5000);
+    }
+    const kundeLabel = k => (k.kundennr ? k.kundennr + ' · ' : '') + k.name;
+
+    async function laden() {
+      D = await api('kunden.php');
+      document.body.classList.toggle('k-readonly', !D.darf_bearbeiten);
+      renderKunden();
+      renderZeitarten();
+    }
+
+    // ---------------- Kunden ----------------
+    function renderKunden() {
+      const q = norm($('suche').value).trim();
+      const alle = $('zeigeInaktive').checked;
+      const liste = $('kundenListe');
+      let n = 0;
+      const html = D.kunden.map(k => {
+        const projekte = k.projekte.filter(p => alle || p.aktiv);
+        const trefferKunde = !q || norm(kundeLabel(k) + ' ' + k.adresse + ' ' + k.comatic_nr).includes(q);
+        const trefferProjekte = q ? projekte.filter(p => norm(p.name + ' ' + p.comatic_nr).includes(q)) : projekte;
+        if (!alle && !k.aktiv) return '';
+        if (!trefferKunde && trefferProjekte.length === 0) return '';
+        n++;
+        const zeige = trefferKunde ? projekte : trefferProjekte;
+        const auf = offen.has(k.id) || (q && !trefferKunde);
+        const aktivAnz = k.projekte.filter(p => p.aktiv).length;
+        return `
+          <article class="k-kunde ${k.aktiv ? '' : 'is-inaktiv'} ${auf ? 'is-open' : ''}" data-kid="${k.id}">
+            <button type="button" class="k-kunde-kopf" data-toggle="${k.id}" aria-expanded="${auf}">
+              <span class="k-nr">${esc(k.kundennr || '—')}</span>
+              <span class="k-kname">${esc(k.name)}${k.aktiv ? '' : ' <span class="k-tag">ausgeblendet</span>'}</span>
+              <span class="k-ort">${esc(k.adresse || '')}</span>
+              <span class="k-anz">${aktivAnz} Auftr${aktivAnz === 1 ? 'ag' : 'äge'}</span>
+              <span class="k-chev" aria-hidden="true">›</span>
+            </button>
+            <div class="k-kunde-body">
+              <div class="k-kunde-aktionen">
+                <span class="k-sub">Comatic Adress_ID ${esc(k.comatic_nr || '–')}</span>
+                <span class="k-spacer"></span>
+                <button type="button" class="k-btn-ghost k-admin" data-edit-kunde="${k.id}">Kunde bearbeiten</button>
+                <button type="button" class="k-btn-ghost k-admin" data-neu-projekt="${k.id}">+ Auftrag</button>
+              </div>
+              ${zeige.length ? `<ul class="k-projekte">${zeige.map(p => `
+                <li class="${p.aktiv ? '' : 'is-inaktiv'}">
+                  <span class="k-pname">${esc(p.name)}</span>
+                  <span class="k-sub">${p.comatic_nr ? 'Auftrag ' + esc(p.comatic_nr) : 'ohne Comatic-Nr.'}</span>
+                  <span class="k-sub">${p.buchungen ? p.buchungen + ' Buchungen, zuletzt ' + datum(p.letzte_buchung) : 'noch keine Buchungen'}</span>
+                  <label class="k-switch k-admin" title="${p.aktiv ? 'ausblenden' : 'einblenden'}">
+                    <input type="checkbox" data-aktiv-projekt="${p.id}" ${p.aktiv ? 'checked' : ''}><span></span>
+                  </label>
+                  <button type="button" class="k-link k-admin" data-edit-projekt="${p.id}" data-kid="${k.id}">bearbeiten</button>
+                </li>`).join('')}</ul>` : '<p class="k-sub k-leer">Keine Aufträge' + (alle ? '' : ' aktiv') + '.</p>'}
+            </div>
+          </article>`;
+      }).join('');
+      liste.innerHTML = html || '<p class="k-sub k-leer">Nichts gefunden.</p>';
+      $('zaehler').textContent = n + ' Kunden';
+    }
+
+    $('suche').addEventListener('input', renderKunden);
+    $('zeigeInaktive').addEventListener('change', renderKunden);
+
+    $('kundenListe').addEventListener('click', ev => {
+      const t = ev.target.closest('[data-toggle],[data-edit-kunde],[data-neu-projekt],[data-edit-projekt]');
+      if (!t) return;
+      if (t.dataset.toggle) {
+        const id = Number(t.dataset.toggle);
+        offen.has(id) ? offen.delete(id) : offen.add(id);
+        renderKunden();
+      } else if (t.dataset.editKunde) {
+        kundeDialog(D.kunden.find(k => k.id === Number(t.dataset.editKunde)));
+      } else if (t.dataset.neuProjekt) {
+        projektDialog(D.kunden.find(k => k.id === Number(t.dataset.neuProjekt)), null);
+      } else if (t.dataset.editProjekt) {
+        const k = D.kunden.find(k => k.id === Number(t.dataset.kid));
+        projektDialog(k, k.projekte.find(p => p.id === Number(t.dataset.editProjekt)));
+      }
+    });
+
+    // Auftrag schnell ein-/ausblenden
+    $('kundenListe').addEventListener('change', async ev => {
+      const cb = ev.target.closest('[data-aktiv-projekt]');
+      if (!cb) return;
+      const id = Number(cb.dataset.aktivProjekt);
+      const k = D.kunden.find(k => k.projekte.some(p => p.id === id));
+      const p = k.projekte.find(p => p.id === id);
+      try {
+        await api('kunden.php', { method:'POST', body: { aktion:'projekt_speichern', id, kunde_id:k.id, name:p.name, comatic_nr:p.comatic_nr, aktiv: cb.checked } });
+        p.aktiv = cb.checked;
+        renderKunden();
+        meldung(cb.checked ? 'Auftrag eingeblendet' : 'Auftrag ausgeblendet', true);
+      } catch (e) { cb.checked = !cb.checked; meldung(e.message); }
+    });
+
+    // ---------------- Dialog Kunde ----------------
+    let aktKunde = null;
+    function kundeDialog(k) {
+      aktKunde = k || null;
+      $('dlgKundeTitel').textContent = k ? 'Kunde bearbeiten' : 'Neuer Kunde';
+      $('kName').value = k?.name || '';
+      $('kNr').value = k?.kundennr || '';
+      $('kComatic').value = k?.comatic_nr || '';
+      $('kAdresse').value = k?.adresse || '';
+      $('kAktiv').checked = k ? k.aktiv : true;
+      const loeschbar = k && k.projekte.length === 0 && k.buchungen === 0;
+      $('kLoeschen').classList.toggle('k-hidden', !loeschbar);
+      $('dlgKunde').showModal();
+      $('kName').focus();
+    }
+    $('neuKunde').addEventListener('click', () => kundeDialog(null));
+    $('frmKunde').addEventListener('submit', async ev => {
+      ev.preventDefault();
+      try {
+        const r = await api('kunden.php', { method:'POST', body: {
+          aktion:'kunde_speichern', id: aktKunde?.id || 0,
+          name: $('kName').value, kundennr: $('kNr').value, comatic_nr: $('kComatic').value,
+          adresse: $('kAdresse').value, aktiv: $('kAktiv').checked } });
+        $('dlgKunde').close();
+        offen.add(r.id);
+        await laden();
+        meldung('Kunde gespeichert', true);
+      } catch (e) { meldung(e.message); }
+    });
+    $('kLoeschen').addEventListener('click', async () => {
+      if (!aktKunde) return;
+      try {
+        await api('kunden.php', { method:'POST', body: { aktion:'kunde_loeschen', id: aktKunde.id } });
+        $('dlgKunde').close();
+        await laden();
+        meldung('Kunde gelöscht', true);
+      } catch (e) { meldung(e.message); }
+    });
+
+    // ---------------- Dialog Auftrag ----------------
+    let aktProjekt = null, aktProjektKunde = null;
+    function projektDialog(k, p) {
+      aktProjektKunde = k; aktProjekt = p || null;
+      $('dlgProjektTitel').textContent = p ? 'Auftrag bearbeiten' : 'Neuer Auftrag';
+      $('pKundeName').textContent = kundeLabel(k);
+      $('pName').value = p?.name || '';
+      $('pComatic').value = p?.comatic_nr || '';
+      $('pAktiv').checked = p ? p.aktiv : true;
+      $('pInfo').textContent = p && p.buchungen ? `${p.buchungen} Buchungen – kann nur ausgeblendet, nicht gelöscht werden.` : '';
+      $('pLoeschen').classList.toggle('k-hidden', !p || p.buchungen > 0);
+      $('dlgProjekt').showModal();
+      $('pName').focus();
+    }
+    $('frmProjekt').addEventListener('submit', async ev => {
+      ev.preventDefault();
+      try {
+        await api('kunden.php', { method:'POST', body: {
+          aktion:'projekt_speichern', id: aktProjekt?.id || 0, kunde_id: aktProjektKunde.id,
+          name: $('pName').value, comatic_nr: $('pComatic').value, aktiv: $('pAktiv').checked } });
+        $('dlgProjekt').close();
+        offen.add(aktProjektKunde.id);
+        await laden();
+        meldung('Auftrag gespeichert', true);
+      } catch (e) { meldung(e.message); }
+    });
+    $('pLoeschen').addEventListener('click', async () => {
+      if (!aktProjekt) return;
+      try {
+        await api('kunden.php', { method:'POST', body: { aktion:'projekt_loeschen', id: aktProjekt.id } });
+        $('dlgProjekt').close();
+        await laden();
+        meldung('Auftrag gelöscht', true);
+      } catch (e) { meldung(e.message); }
+    });
+
+    // ---------------- Zeitarten ----------------
+    function renderZeitarten() {
+      const q = norm($('sucheZ').value).trim();
+      const name = id => { const k = D.kunden.find(k => k.id === id); return k ? (k.kundennr || k.name) : '?'; };
+      $('zeitartenListe').innerHTML = D.zeitarten
+        .filter(z => !q || norm(z.name + ' ' + z.typ).includes(q))
+        .map(z => `
+          <tr class="${z.aktiv ? '' : 'is-inaktiv'}">
+            <td>${esc(z.name)}</td>
+            <td><span class="k-tag ${z.typ === 'fahrt' ? 'fahrt' : z.typ === 'telefon' ? 'tel' : ''}">${TYP[z.typ] || z.typ}</span></td>
+            <td class="k-num">${z.preis_std != null ? z.preis_std.toFixed(2) : ''}${z.abrechnungsart === 'pauschal' ? ' <span class="k-sub">pausch.</span>' : ''}</td>
+            <td>${z.verrechenbar ? 'ja' : '<span class="k-sub">nein</span>'}</td>
+            <td>${z.kunden.length ? z.kunden.map(id => `<span class="k-chip">${esc(name(id))}</span>`).join(' ') : '<span class="k-sub">alle</span>'}</td>
+            <td>${z.aktiv ? 'ja' : '<span class="k-sub">nein</span>'}</td>
+            <td><button type="button" class="k-link k-admin" data-edit-zeitart="${z.id}">bearbeiten</button></td>
+          </tr>`).join('');
+    }
+    $('sucheZ').addEventListener('input', renderZeitarten);
+
+    let aktZeitart = null, zAuswahl = new Set();
+    $('zeitartenListe').addEventListener('click', ev => {
+      const b = ev.target.closest('[data-edit-zeitart]');
+      if (!b) return;
+      aktZeitart = D.zeitarten.find(z => z.id === Number(b.dataset.editZeitart));
+      zAuswahl = new Set(aktZeitart.kunden);
+      $('zTitel').textContent = aktZeitart.name;
+      $('zAktiv').checked = aktZeitart.aktiv;
+      $('zVerr').checked = aktZeitart.verrechenbar;
+      $('zKundeSuche').value = '';
+      const ohneKunde = ['pause', 'abwesenheit'].includes(aktZeitart.typ);
+      $('zKundeSuche').disabled = ohneKunde;
+      renderPick(ohneKunde);
+      $('dlgZeitart').showModal();
+    });
+    function renderPick(gesperrt = false) {
+      const q = norm($('zKundeSuche').value).trim();
+      if (gesperrt) { $('zKunden').innerHTML = '<p class="k-sub">Pausen und Abwesenheiten gelten nie für einen Kunden.</p>'; $('zAnzahl').textContent = ''; return; }
+      const sortiert = [...D.kunden].filter(k => k.aktiv || zAuswahl.has(k.id))
+        .sort((a, b) => (zAuswahl.has(b.id) - zAuswahl.has(a.id)) || a.name.localeCompare(b.name));
+      $('zKunden').innerHTML = sortiert
+        .filter(k => !q || zAuswahl.has(k.id) || norm(kundeLabel(k)).includes(q))
+        .map(k => `<label class="k-check"><input type="checkbox" value="${k.id}" ${zAuswahl.has(k.id) ? 'checked' : ''}> ${esc(kundeLabel(k))}</label>`).join('');
+      $('zAnzahl').textContent = zAuswahl.size ? zAuswahl.size + ' Kunde(n) gewählt' : 'gilt für alle Kunden';
+    }
+    $('zKundeSuche').addEventListener('input', () => renderPick());
+    $('zKunden').addEventListener('change', ev => {
+      const id = Number(ev.target.value);
+      ev.target.checked ? zAuswahl.add(id) : zAuswahl.delete(id);
+      $('zAnzahl').textContent = zAuswahl.size ? zAuswahl.size + ' Kunde(n) gewählt' : 'gilt für alle Kunden';
+    });
+    $('frmZeitart').addEventListener('submit', async ev => {
+      ev.preventDefault();
+      try {
+        await api('kunden.php', { method:'POST', body: {
+          aktion:'zeitart_speichern', id: aktZeitart.id,
+          aktiv: $('zAktiv').checked, verrechenbar: $('zVerr').checked, kunden: [...zAuswahl] } });
+        $('dlgZeitart').close();
+        await laden();
+        meldung('Zeitart gespeichert', true);
+      } catch (e) { meldung(e.message); }
+    });
+
+    // ---------------- Allgemein ----------------
+    document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+    document.querySelectorAll('.k-tab').forEach(t => t.addEventListener('click', () => {
+      document.querySelectorAll('.k-tab').forEach(x => { x.classList.toggle('is-active', x === t); x.setAttribute('aria-selected', x === t); });
+      $('tab-kunden').classList.toggle('k-hidden', t.dataset.tab !== 'kunden');
+      $('tab-zeitarten').classList.toggle('k-hidden', t.dataset.tab !== 'zeitarten');
+    }));
+    $('logout').addEventListener('click', async ev => {
+      ev.preventDefault();
+      try { await api('logout.php', { method:'POST' }); } catch (e) { /* egal */ }
+      location.href = 'index.html';
+    });
+
+    (async () => {
+      try {
+        const me = await api('me.php');
+        CSRF = me.csrf;
+        $('userName').textContent = me.benutzer.name;
+        await laden();
+      } catch (e) { meldung(e.message); }
+    })();
+  </script>
+</body>
+</html>

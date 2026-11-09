@@ -17,7 +17,7 @@
       <a href="#">Woche</a>
       <a href="#">Rapporte</a>
       <a href="#">Spesen</a>
-      <a href="#">Kunden &amp; Projekte</a>
+      <a href="kunden.html">Kunden &amp; Projekte</a>
     </nav>
     <span class="k-user"><span id="userName">…</span> · <a href="#" id="logout">Abmelden</a></span>
   </header>
@@ -160,15 +160,24 @@
       sk.innerHTML = '';
       STAMM.kunden.forEach(k => sk.add(new Option((k.kundennr ? k.kundennr + ' · ' : '') + k.name, k.id)));
       fillProjekte();
+    }
+    // Zeitarten: allgemeine immer, kundenspezifische nur beim passenden Kunden
+    function fillLeistungen() {
       const sl = $('leistung');
+      const vorher = sl.value;
+      const kid = Number($('kunde').value);
       sl.innerHTML = '';
-      STAMM.leistungsarten.forEach(l => sl.add(new Option(l.name, l.id)));
+      STAMM.leistungsarten
+        .filter(l => !l.kunden || l.kunden.length === 0 || l.kunden.includes(kid))
+        .forEach(l => sl.add(new Option(l.name, l.id)));
+      if ([...sl.options].some(o => o.value === vorher)) sl.value = vorher;
     }
     function fillProjekte() {
       const sp = $('projekt');
       sp.innerHTML = '';
       const k = STAMM.kunden.find(k => String(k.id) === $('kunde').value);
       (k ? k.projekte : []).forEach(p => sp.add(new Option(p.name, p.id)));
+      fillLeistungen();
     }
     $('kunde').addEventListener('change', fillProjekte);
 
