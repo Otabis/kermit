@@ -3,6 +3,7 @@
  * POST   api/eintraege.php   {aktion:"start", zeitkonto, kunde_id, projekt_id, leistungsart_id, notiz}
  * POST   api/eintraege.php   {aktion:"stop",  zeitkonto, notiz?}
  * POST   api/eintraege.php   {aktion:"neu",   zeitkonto, kunde_id, projekt_id, leistungsart_id, beginn, ende, km?, notiz?}
+ * POST   api/eintraege.php   {aktion:"aendern", id, kunde_id, projekt_id, leistungsart_id, beginn, ende?, km?, verkehrsmittel?, notiz?}
  * DELETE api/eintraege.php?id=123
  */
 declare(strict_types=1);
@@ -17,27 +18,28 @@ function konto(array $in): string
     return ($in['zeitkonto'] ?? 'standard') === 'pikett' ? 'pikett' : 'standard';
 }
 
-function zuordnung_pruefen(array $in): array
+function zuordnung_pruefen(array $in, ?int $bisherProjekt = null, ?int $bisherLeistung = null): array
 {
     $leistung = (int)($in['leistungsart_id'] ?? 0);
     $kunde    = isset($in['kunde_id'])   && $in['kunde_id']   !== '' ? (int)$in['kunde_id']   : null;
     $projekt  = isset($in['projekt_id']) && $in['projekt_id'] !== '' ? (int)$in['projekt_id'] : null;
 
-    $st = db()->prepare('SELECT typ FROM leistungsarten WHERE id = ? AND aktiv = 1');
-    $st->execute([$leistung]);
+    // Beim Bearbeiten darf die bisherige Zeitart bzw. der bisherige Auftrag auch ausgeblendet sein
+    $st = db()->prepare('SELECT typ FROM leistungsarten WHERE id = ? AND (aktiv = 1 OR id = ?)');
+    $st->execute([$leistung, $bisherLeistung ?? 0]);
     $typ = $st->fetchColumn();
     if ($typ === false) {
         fehler('Leistung wählen');
     }
-    if ($typ === 'pause') {
-        $kunde = null;     // Pause gehört keinem Kunden
+    if ($typ === 'pause' || $typ === 'abwesenheit') {
+        $kunde = null;     // Pause, Krank, Unfall gehören keinem Kunden
         $projekt = null;
     } elseif ($projekt === null) {
         fehler('Projekt wählen');
     }
     if ($projekt !== null) {
-        $st = db()->prepare('SELECT kunde_id FROM projekte WHERE id = ? AND aktiv = 1');
-        $st->execute([$projekt]);
+        $st = db()->prepare('SELECT kunde_id FROM projekte WHERE id = ? AND (aktiv = 1 OR id = ?)');
+        $st->execute([$projekt, $bisherProjekt ?? 0]);
         $k = $st->fetchColumn();
         if ($k === false || ($kunde !== null && (int)$k !== $kunde)) {
             fehler('Projekt passt nicht zum Kunden');
@@ -78,7 +80,7 @@ $in = eingabe();
 $konto = konto($in);
 $aktion = $in['aktion'] ?? '';
 
-if (tag_freigegeben($u['id'], date('Y-m-d')) && $aktion !== 'neu') {
+if (tag_freigegeben($u['id'], date('Y-m-d')) && in_array($aktion, ['start', 'stop'], true)) {
     fehler('Heute ist bereits freigegeben', 409);
 }
 
@@ -133,6 +135,49 @@ switch ($aktion) {
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'manuell', ?)"
         )->execute([$u['id'], $konto, $kunde, $projekt, $leistung, $beginn, $ende, $km, $vm, $notiz]);
         json_out(['ok' => true, 'id' => (int)$pdo->lastInsertId()]);
+
+    case 'aendern':
+        $id = (int)($in['id'] ?? 0);
+        $st = $pdo->prepare('SELECT beginn, ende, projekt_id, leistungsart_id FROM eintraege WHERE id = ? AND benutzer_id = ?');
+        $st->execute([$id, $u['id']]);
+        $alt = $st->fetch();
+        if (!$alt) {
+            fehler('Eintrag nicht gefunden', 404);
+        }
+        if (tag_freigegeben($u['id'], substr($alt['beginn'], 0, 10))) {
+            fehler('Tag ist freigegeben und gesperrt', 409);
+        }
+        [$kunde, $projekt, $leistung, $notiz] = zuordnung_pruefen(
+            $in,
+            $alt['projekt_id'] === null ? null : (int)$alt['projekt_id'],
+            (int)$alt['leistungsart_id']
+        );
+        $beginn = zeit((string)($in['beginn'] ?? ''));
+        $laeuft = $alt['ende'] === null;
+        $ende = $laeuft ? null : zeit((string)($in['ende'] ?? ''));
+        if ($laeuft) {
+            if ($beginn > date('Y-m-d H:i:s')) {
+                fehler('Beginn liegt in der Zukunft');
+            }
+        } else {
+            if ($ende <= $beginn) {
+                fehler('Ende muss nach Beginn liegen');
+            }
+            if (substr($beginn, 0, 10) !== substr($ende, 0, 10)) {
+                fehler('Eintrag muss am selben Tag enden');
+            }
+        }
+        if (tag_freigegeben($u['id'], substr($beginn, 0, 10))) {
+            fehler('Zieltag ist freigegeben und gesperrt', 409);
+        }
+        $km = max(0, min(9999, (float)($in['km'] ?? 0)));
+        $vm = in_array($in['verkehrsmittel'] ?? null, ['auto', 'oev'], true) ? $in['verkehrsmittel'] : null;
+        $pdo->prepare(
+            'UPDATE eintraege
+                SET kunde_id = ?, projekt_id = ?, leistungsart_id = ?, beginn = ?, ende = ?, km = ?, verkehrsmittel = ?, notiz = ?
+              WHERE id = ? AND benutzer_id = ?'
+        )->execute([$kunde, $projekt, $leistung, $beginn, $ende, $km, $vm, $notiz, $id, $u['id']]);
+        json_out(['ok' => true]);
 
     default:
         fehler('Unbekannte Aktion');

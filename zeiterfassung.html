@@ -39,9 +39,15 @@
       </label>
     </section>
 
-    <!-- Timer / laufende Erfassung -->
+    <!-- Erfassung: Timer oder Von–Bis -->
     <section class="k-card">
-      <h2>Erfassung</h2>
+      <div class="k-card-head">
+        <h2>Erfassung</h2>
+        <div class="k-modus" role="tablist" aria-label="Erfassungsart">
+          <button type="button" role="tab" class="k-modus-btn is-active" data-modus="timer" aria-selected="true">Timer</button>
+          <button type="button" role="tab" class="k-modus-btn" data-modus="manuell" aria-selected="false">Von – Bis</button>
+        </div>
+      </div>
       <div class="k-timer">
         <div class="k-timer-fields k-form">
           <label>Kunde
@@ -57,10 +63,26 @@
             <input id="notiz" type="text" maxlength="500" placeholder="z. B. Drucker eingerichtet, Outlook-Profil neu">
           </label>
         </div>
-        <div class="k-timer-right">
+
+        <!-- Modus Timer -->
+        <div class="k-timer-right" id="panelTimer">
           <div class="k-clock" id="clock">00:00:00</div>
           <button class="k-runbtn" id="runBtn" type="button">START</button>
         </div>
+
+        <!-- Modus Von – Bis -->
+        <form class="k-manuell k-form k-hidden" id="panelManuell" autocomplete="off">
+          <label>Von <input type="time" id="mVon" required></label>
+          <label>Bis <input type="time" id="mBis" required></label>
+          <label>km <input type="number" id="mKm" min="0" step="0.1" placeholder="0"></label>
+          <label>Verkehrsmittel
+            <select id="mVm"><option value="">–</option><option value="auto">Auto</option><option value="oev">ÖV</option></select>
+          </label>
+          <div class="k-manuell-fuss">
+            <span class="k-dauer" id="mDauer">–:––</span>
+            <button class="k-btn" type="submit" id="mSpeichern">Erfassen</button>
+          </div>
+        </form>
       </div>
     </section>
 
@@ -74,8 +96,11 @@
 
     <!-- Einträge des Tages -->
     <section class="k-card">
-      <h2>Einträge</h2>
-      <table class="k-table">
+      <div class="k-card-head">
+        <h2>Einträge</h2>
+        <span class="k-sub">Eintrag anklicken zum Bearbeiten</span>
+      </div>
+      <table class="k-table k-table-edit">
         <thead>
           <tr>
             <th>Zeit</th><th>Kunde / Projekt</th><th>Leistung</th><th>Quelle</th><th class="k-num">Dauer</th><th class="k-num">km</th>
@@ -89,27 +114,34 @@
     <!-- Tagesfreigabe -->
     <section class="k-card k-approve">
       <span id="approveState" class="k-sub">Tag noch nicht freigegeben</span>
-      <button class="k-btn-ghost" id="addBtn" type="button">Eintrag hinzufügen</button>
       <button class="k-btn" id="approveBtn" type="button">Tag freigeben</button>
     </section>
   </main>
 
-  <!-- Dialog: Eintrag nachträglich erfassen -->
-  <dialog class="k-dialog" id="addDialog">
-    <form method="dialog" id="addForm" class="k-form">
-      <h2>Eintrag hinzufügen</h2>
+  <!-- Dialog: Eintrag bearbeiten -->
+  <dialog class="k-dialog k-dialog-edit" id="editDialog">
+    <form id="editForm" class="k-form">
+      <h2>Eintrag bearbeiten</h2>
       <div class="k-dialog-grid">
-        <label>Von <input type="time" id="fVon" required></label>
-        <label>Bis <input type="time" id="fBis" required></label>
-        <label>Kilometer <input type="number" id="fKm" min="0" step="0.1" value="0"></label>
+        <label class="k-span2">Kunde <select id="eKunde"></select></label>
+        <label class="k-span2">Projekt <select id="eProjekt"></select></label>
+        <label class="k-span2">Leistung <select id="eLeistung"></select></label>
+        <label>Datum <input type="date" id="eDatum" required></label>
+        <label class="k-span-dauer">Dauer <output id="eDauer">–:––</output></label>
+        <label>Von <input type="time" id="eVon" required></label>
+        <label>Bis <input type="time" id="eBis"></label>
+        <label>km <input type="number" id="eKm" min="0" step="0.1"></label>
         <label>Verkehrsmittel
-          <select id="fVm"><option value="">–</option><option value="auto">Auto</option><option value="oev">ÖV</option></select>
+          <select id="eVm"><option value="">–</option><option value="auto">Auto</option><option value="oev">ÖV</option></select>
         </label>
+        <label class="k-span2">Notiz <input type="text" id="eNotiz" maxlength="500"></label>
       </div>
-      <p class="k-sub">Kunde, Projekt, Leistung und Notiz werden aus dem Erfassungsbereich übernommen.</p>
+      <p class="k-sub" id="eInfo"></p>
       <div class="k-approve">
-        <button class="k-btn-ghost" value="cancel" type="button" id="addCancel">Abbrechen</button>
-        <button class="k-btn" type="submit">Speichern</button>
+        <button type="button" class="k-btn-ghost k-danger" id="eLoeschen">Löschen</button>
+        <span class="k-spacer"></span>
+        <button type="button" class="k-btn-ghost" id="eAbbrechen">Abbrechen</button>
+        <button type="submit" class="k-btn" id="eSpeichern">Speichern</button>
       </div>
     </form>
   </dialog>
@@ -155,30 +187,37 @@
     }
 
     // ---------- Stammdaten ----------
-    function fillKunden() {
-      const sk = $('kunde');
+    const kundeLabel = k => (k.kundennr ? k.kundennr + ' · ' : '') + k.name;
+
+    // Füllt ein Trio Kunde/Projekt/Leistung. "extra" ergänzt ausgeblendete Werte eines alten Eintrags.
+    function fuelleKunden(sk, extra) {
       sk.innerHTML = '';
-      STAMM.kunden.forEach(k => sk.add(new Option((k.kundennr ? k.kundennr + ' · ' : '') + k.name, k.id)));
-      fillProjekte();
+      STAMM.kunden.forEach(k => sk.add(new Option(kundeLabel(k), k.id)));
+      if (extra?.kunde_id && ![...sk.options].some(o => o.value === String(extra.kunde_id)))
+        sk.add(new Option(extra.kunde + ' (ausgeblendet)', extra.kunde_id));
+    }
+    function fuelleProjekte(sk, sp, extra) {
+      sp.innerHTML = '';
+      const k = STAMM.kunden.find(k => String(k.id) === sk.value);
+      (k ? k.projekte : []).forEach(p => sp.add(new Option(p.name, p.id)));
+      if (extra?.projekt_id && String(extra.kunde_id) === sk.value && ![...sp.options].some(o => o.value === String(extra.projekt_id)))
+        sp.add(new Option(extra.projekt + ' (ausgeblendet)', extra.projekt_id));
     }
     // Zeitarten: allgemeine immer, kundenspezifische nur beim passenden Kunden
-    function fillLeistungen() {
-      const sl = $('leistung');
+    function fuelleLeistungen(sk, sl, extra) {
       const vorher = sl.value;
-      const kid = Number($('kunde').value);
+      const kid = Number(sk.value);
       sl.innerHTML = '';
       STAMM.leistungsarten
         .filter(l => !l.kunden || l.kunden.length === 0 || l.kunden.includes(kid))
         .forEach(l => sl.add(new Option(l.name, l.id)));
+      if (extra?.leistungsart_id && ![...sl.options].some(o => o.value === String(extra.leistungsart_id)))
+        sl.add(new Option(extra.leistung, extra.leistungsart_id));
       if ([...sl.options].some(o => o.value === vorher)) sl.value = vorher;
     }
-    function fillProjekte() {
-      const sp = $('projekt');
-      sp.innerHTML = '';
-      const k = STAMM.kunden.find(k => String(k.id) === $('kunde').value);
-      (k ? k.projekte : []).forEach(p => sp.add(new Option(p.name, p.id)));
-      fillLeistungen();
-    }
+
+    function fillKunden() { fuelleKunden($('kunde')); fillProjekte(); }
+    function fillProjekte() { fuelleProjekte($('kunde'), $('projekt')); fuelleLeistungen($('kunde'), $('leistung')); }
     $('kunde').addEventListener('change', fillProjekte);
 
     function auswahl() {
@@ -203,17 +242,19 @@
       tb.innerHTML = '';
       TAG.eintraege.forEach(e => {
         const tr = document.createElement('tr');
-        const gesperrt = TAG.freigegeben || !e.ende;
+        tr.dataset.id = e.id;
+        tr.tabIndex = 0;
+        tr.title = TAG.freigegeben ? 'Tag ist freigegeben' : 'Bearbeiten';
         tr.innerHTML = `
           <td class="k-zeit">${hhmm(e.beginn)}–${hhmm(e.ende)}</td>
           <td>${esc(e.kunde || '—')}${e.projekt ? `<div class="k-sub">${esc(e.projekt)}</div>` : ''}</td>
-          <td>${esc(e.leistung)}${e.notiz ? `<div class="k-sub">${esc(e.notiz)}</div>` : ''}
-              ${gesperrt ? '' : `<button class="k-link-del" data-id="${e.id}" type="button">löschen</button>`}</td>
+          <td>${esc(e.leistung)}${e.notiz ? `<div class="k-sub">${esc(e.notiz)}</div>` : ''}</td>
           <td><span class="k-tag ${TAGKLASSE[e.quelle] || ''}">${e.ende ? QUELLE[e.quelle] : 'läuft'}</span></td>
           <td class="k-num">${fmt(e.minuten)}</td>
           <td class="k-num">${e.km ? e.km : ''}</td>`;
         tb.appendChild(tr);
       });
+      $('rows').classList.toggle('is-gesperrt', TAG.freigegeben);
       $('leer').classList.toggle('k-hidden', TAG.eintraege.length > 0);
 
       const s = TAG.summen;
@@ -226,9 +267,10 @@
       if (TAG.freigegeben) { st.textContent = 'Tag freigegeben – bereit für Export'; st.className = 'k-status-ok'; }
       else { st.textContent = 'Tag noch nicht freigegeben'; st.className = 'k-sub'; }
       $('approveBtn').disabled = TAG.freigegeben;
-      $('addBtn').disabled = TAG.freigegeben;
+      $('mSpeichern').disabled = TAG.freigegeben;
 
       renderTimer();
+      modusAnpassen();
     }
 
     // ---------- Timer ----------
@@ -268,34 +310,154 @@
       btn.disabled = false;
     });
 
-    // ---------- Löschen ----------
-    $('rows').addEventListener('click', async ev => {
-      const b = ev.target.closest('.k-link-del');
-      if (!b) return;
-      try {
-        await api('eintraege.php?id=' + b.dataset.id, { method:'DELETE' });
-        await ladeTag();
-      } catch (e) { meldung(e.message); }
-    });
+    // ---------- Modus Timer / Von–Bis ----------
+    let modus = 'timer';
+    try { modus = localStorage.getItem('kermit_modus') || 'timer'; } catch (e) { /* egal */ }
+    const istHeute = () => isoDatum(datum) === isoDatum(new Date());
 
-    // ---------- Eintrag hinzufügen ----------
-    $('addBtn').addEventListener('click', () => $('addDialog').showModal());
-    $('addCancel').addEventListener('click', () => $('addDialog').close());
-    $('addForm').addEventListener('submit', async ev => {
+    function setzeModus(m, merken = true) {
+      modus = m;
+      if (merken) { try { localStorage.setItem('kermit_modus', m); } catch (e) { /* egal */ } }
+      modusAnpassen();
+    }
+    function modusAnpassen() {
+      // Ein Timer läuft nur heute – an anderen Tagen wird von Hand erfasst
+      const effektiv = (!istHeute() && !TAG?.laufend) ? 'manuell' : modus;
+      document.querySelectorAll('.k-modus-btn').forEach(b => {
+        const an = b.dataset.modus === effektiv;
+        b.classList.toggle('is-active', an); b.setAttribute('aria-selected', an);
+        b.disabled = b.dataset.modus === 'timer' && !istHeute() && !TAG?.laufend;
+      });
+      $('panelTimer').classList.toggle('k-hidden', effektiv !== 'timer');
+      $('panelManuell').classList.toggle('k-hidden', effektiv !== 'manuell');
+    }
+    document.querySelectorAll('.k-modus-btn').forEach(b => b.addEventListener('click', () => setzeModus(b.dataset.modus)));
+
+    // Dauer live anzeigen
+    function dauer(von, bis) {
+      if (!von || !bis) return null;
+      const m = toMin(bis) - toMin(von);
+      return m > 0 ? m : null;
+    }
+    const toMin = t => { const [h, mi] = t.split(':').map(Number); return h * 60 + mi; };
+    function zeigeDauer(vonId, bisId, ausId) {
+      const d = dauer($(vonId).value, $(bisId).value);
+      $(ausId).textContent = d ? fmt(d) + ' h' : '–:––';
+    }
+    ['mVon', 'mBis'].forEach(id => $(id).addEventListener('input', () => zeigeDauer('mVon', 'mBis', 'mDauer')));
+
+    // Von–Bis direkt erfassen
+    $('panelManuell').addEventListener('submit', async ev => {
       ev.preventDefault();
+      if (!dauer($('mVon').value, $('mBis').value)) { meldung('«Bis» muss nach «Von» liegen'); return; }
       const d = isoDatum(datum);
+      const btn = $('mSpeichern'); btn.disabled = true;
       try {
         await api('eintraege.php', { method:'POST', body: {
           aktion:'neu', ...auswahl(),
-          beginn: d + ' ' + $('fVon').value, ende: d + ' ' + $('fBis').value,
-          km: $('fKm').value, verkehrsmittel: $('fVm').value || null
+          beginn: d + ' ' + $('mVon').value, ende: d + ' ' + $('mBis').value,
+          km: $('mKm').value || 0, verkehrsmittel: $('mVm').value || null
         }});
-        $('addDialog').close();
-        $('addForm').reset();
+        // Nächster Eintrag beginnt dort, wo der letzte aufgehört hat
+        $('mVon').value = $('mBis').value; $('mBis').value = '';
+        $('mKm').value = ''; $('mVm').value = ''; $('notiz').value = '';
+        zeigeDauer('mVon', 'mBis', 'mDauer');
         await ladeTag();
-        meldung('Eintrag gespeichert', true);
+        meldung('Eintrag erfasst', true);
+        $('mBis').focus();
       } catch (e) { meldung(e.message); }
+      btn.disabled = TAG?.freigegeben;
     });
+
+    // ---------- Eintrag bearbeiten ----------
+    let aktEintrag = null;
+    function oeffneEintrag(id) {
+      if (TAG.freigegeben) { meldung('Der Tag ist freigegeben. Zum Ändern zuerst die Freigabe zurücknehmen.'); return; }
+      const e = TAG.eintraege.find(x => x.id === Number(id));
+      if (!e) return;
+      aktEintrag = e;
+      fuelleKunden($('eKunde'), e);
+      $('eKunde').value = e.kunde_id ?? ($('eKunde').options[0]?.value || '');
+      fuelleProjekte($('eKunde'), $('eProjekt'), e);
+      if (e.projekt_id) $('eProjekt').value = e.projekt_id;
+      fuelleLeistungen($('eKunde'), $('eLeistung'), e);
+      $('eLeistung').value = e.leistungsart_id;
+      $('eDatum').value = e.beginn.slice(0, 10);
+      $('eVon').value = e.beginn.slice(11, 16);
+      $('eBis').value = e.ende ? e.ende.slice(11, 16) : '';
+      $('eBis').disabled = !e.ende;
+      $('eBis').required = !!e.ende;
+      $('eKm').value = e.km || '';
+      $('eVm').value = e.verkehrsmittel || '';
+      $('eNotiz').value = e.notiz || '';
+      $('eInfo').textContent = e.ende ? '' : 'Der Timer läuft noch – «Bis» wird beim Stoppen gesetzt.';
+      $('eLoeschen').classList.toggle('k-hidden', !e.ende);
+      zeigeDauer('eVon', 'eBis', 'eDauer');
+      kundeTypAnpassen();
+      $('editDialog').showModal();
+    }
+    // Pause/Krank/Unfall brauchen keinen Kunden
+    function kundeTypAnpassen() {
+      const l = STAMM.leistungsarten.find(l => String(l.id) === $('eLeistung').value);
+      const ohne = l && ['pause', 'abwesenheit'].includes(l.typ);
+      $('eKunde').disabled = ohne; $('eProjekt').disabled = ohne;
+    }
+    $('eKunde').addEventListener('change', () => {
+      fuelleProjekte($('eKunde'), $('eProjekt'), aktEintrag);
+      fuelleLeistungen($('eKunde'), $('eLeistung'), aktEintrag);
+      kundeTypAnpassen();
+    });
+    $('eLeistung').addEventListener('change', kundeTypAnpassen);
+    ['eVon', 'eBis'].forEach(id => $(id).addEventListener('input', () => zeigeDauer('eVon', 'eBis', 'eDauer')));
+
+    $('rows').addEventListener('click', ev => { const tr = ev.target.closest('tr[data-id]'); if (tr) oeffneEintrag(tr.dataset.id); });
+    $('rows').addEventListener('keydown', ev => {
+      if (ev.key !== 'Enter' && ev.key !== ' ') return;
+      const tr = ev.target.closest('tr[data-id]'); if (!tr) return;
+      ev.preventDefault(); oeffneEintrag(tr.dataset.id);
+    });
+    $('eAbbrechen').addEventListener('click', () => $('editDialog').close());
+
+    $('editForm').addEventListener('submit', async ev => {
+      ev.preventDefault();
+      const e = aktEintrag;
+      if (e.ende && !dauer($('eVon').value, $('eBis').value)) { meldung('«Bis» muss nach «Von» liegen'); return; }
+      const d = $('eDatum').value;
+      try {
+        await api('eintraege.php', { method:'POST', body: {
+          aktion:'aendern', id: e.id,
+          kunde_id: $('eKunde').disabled ? null : $('eKunde').value,
+          projekt_id: $('eProjekt').disabled ? null : ($('eProjekt').value || null),
+          leistungsart_id: $('eLeistung').value,
+          beginn: d + ' ' + $('eVon').value,
+          ende: e.ende ? d + ' ' + $('eBis').value : null,
+          km: $('eKm').value || 0, verkehrsmittel: $('eVm').value || null,
+          notiz: $('eNotiz').value
+        }});
+        $('editDialog').close();
+        await ladeTag();
+        meldung(d !== isoDatum(datum) ? 'Eintrag gespeichert und auf den ' + new Date(d).toLocaleDateString('de-CH') + ' verschoben' : 'Eintrag gespeichert', true);
+      } catch (err) { meldung(err.message); }
+    });
+
+    $('eLoeschen').addEventListener('click', async () => {
+      if (!aktEintrag) return;
+      if (!confirmLoeschen()) return;
+      try {
+        await api('eintraege.php?id=' + aktEintrag.id, { method:'DELETE' });
+        $('editDialog').close();
+        await ladeTag();
+        meldung('Eintrag gelöscht', true);
+      } catch (err) { meldung(err.message); }
+    });
+    // Zweistufiges Löschen ohne Browser-Popup
+    function confirmLoeschen() {
+      const b = $('eLoeschen');
+      if (b.dataset.sicher === '1') { delete b.dataset.sicher; b.textContent = 'Löschen'; return true; }
+      b.dataset.sicher = '1'; b.textContent = 'Wirklich löschen?';
+      setTimeout(() => { delete b.dataset.sicher; b.textContent = 'Löschen'; }, 4000);
+      return false;
+    }
 
     // ---------- Freigabe ----------
     $('approveBtn').addEventListener('click', async () => {

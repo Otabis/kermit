@@ -166,3 +166,40 @@ button, input, select { font: inherit; }
 .k-dialog-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .k-dialog-grid label { font-size: 13px; display: grid; gap: 4px; }
 .k-dialog .k-approve { margin-top: 14px; }
+
+/* ---------- Erfassung: Modus Timer / Von–Bis ---------- */
+.k-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.k-card-head h2 { margin: 0; }
+.k-modus { display: inline-flex; background: var(--k-hellblau); border-radius: 8px; padding: 3px; }
+.k-modus-btn { background: none; border: 0; padding: 6px 14px; border-radius: 6px; cursor: pointer; color: var(--k-tiefblau); font-weight: 700; }
+.k-modus-btn:hover:not(:disabled) { color: var(--k-gruen); }
+.k-modus-btn.is-active { background: var(--k-weiss); box-shadow: 0 1px 3px rgba(31,58,95,.18); }
+.k-modus-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.k-manuell { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 280px; align-self: start; }
+.k-manuell label { font-size: 13px; display: grid; gap: 4px; }
+.k-manuell-fuss { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; }
+.k-dauer { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---------- Einträge anklickbar ---------- */
+.k-table-edit tbody tr { cursor: pointer; }
+.k-table-edit tbody tr:hover td { background: var(--k-hellblau); }
+.k-table-edit tbody tr:hover td:first-child { box-shadow: inset 3px 0 0 var(--k-gruen); }
+.k-table-edit tbody tr:focus-visible { outline: 2px solid var(--k-gruen); outline-offset: -2px; }
+.k-table-edit tbody.is-gesperrt tr { cursor: default; }
+.k-table-edit tbody.is-gesperrt tr:hover td:first-child { box-shadow: none; }
+
+/* ---------- Dialog Bearbeiten ---------- */
+.k-dialog-edit { width: min(520px, calc(100vw - 32px)); }
+.k-dialog-edit .k-dialog-grid select,
+.k-dialog-edit .k-dialog-grid input { padding: 9px 10px; border: 1px solid var(--k-rahmen); border-radius: 6px; width: 100%; background: var(--k-weiss); color: var(--k-tiefblau); }
+.k-dialog-edit .k-dialog-grid input:disabled, .k-dialog-edit .k-dialog-grid select:disabled { background: #F1F3F6; color: #8A94A3; }
+.k-dialog-edit output { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; padding-top: 4px; }
+.k-span2 { grid-column: 1 / -1; }
+.k-danger { color: #B42318; border-color: #F0C4C4; }
+.k-danger:hover { border-color: #B42318; }
+.k-spacer { flex: 1; }
+
+@media (max-width: 760px) {
+  .k-manuell { width: 100%; }
+}
